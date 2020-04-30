@@ -53,7 +53,7 @@ resource "aws_instance" "gitlab_runner" {
     create_before_destroy = true
   }
   user_data = templatefile(
-    "./templates/gl_runner_cloud_init.tmpl",
+    "${path.module}/templates/gl_runner_cloud_init.tmpl",
     {
       hostname : "gitlab-ci-runner-${random_pet.runner_id[count.index].id}.build.${var.runner_register.tld}",
       registration_token : var.runner_register.ci_token,
