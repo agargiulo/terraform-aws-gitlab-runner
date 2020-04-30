@@ -4,6 +4,8 @@ hostname ${hostname}
 
 cat << EOF > /tmp/gitlab-runner.template.toml
 concurrent = ${runner_concurrency}
+
+[[runners]]
 EOF
 
 /usr/bin/gitlab-runner register \
