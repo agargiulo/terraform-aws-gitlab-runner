@@ -1,0 +1,15 @@
+default:
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [""]
+  tags:
+    - shared-exec-docker
+
+stages:
+  - test
+
+terraform_fmt_check:
+  stage: test
+  script:
+    - terraform --version
+    - terraform fmt -diff -check
