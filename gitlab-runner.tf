@@ -1,12 +1,11 @@
 data "aws_ami" "gitlab_runner_centos7_docker" {
   executable_users = ["self"]
   most_recent      = true
-  name_regex       = var.ami.name_regex
   owners           = [var.ami.owner]
 
   filter {
     name   = "name"
-    values = var.ami.name_filter
+    values = ["ci-cd_${var.ami.version_slug}.gitlab-runner_${var.runner_version}.centos_7.*"]
   }
 }
 

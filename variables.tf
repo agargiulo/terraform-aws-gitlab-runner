@@ -1,10 +1,11 @@
 variable "prefix" { default = "gitlab-runner" }
 
+variable "runner_version" { default = "12.10.1" }
+
 variable "ami" {
   default = {
-    owner       = "self"
-    name_filter = ["gitlab-runner-*"]
-    name_regex  = "^gitlab-runner-\\d+"
+    owner        = "self"
+    version_slug = "master"
   }
 }
 
