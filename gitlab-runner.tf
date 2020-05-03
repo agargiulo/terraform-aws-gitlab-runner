@@ -20,19 +20,19 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 }
 
 resource "random_pet" "runner_id" {
+  count = var.runner_ec2.count
   keepers = {
     ami_id    = data.aws_ami.gitlab_runner_centos7_docker.id
     subnet_id = var.runner_ec2.subnet_id
   }
-  count = var.runner_ec2.count
 }
 
 resource "aws_instance" "gitlab_runner" {
   count                       = var.runner_ec2.count
-  ami                         = random_pet.runner_id.keepers.ami_id
+  ami                         = random_pet.runner_id[count.index].keepers.ami_id
   instance_type               = var.runner_ec2.instance_type
   vpc_security_group_ids      = var.runner_ec2.security_groups
-  subnet_id                   = random_pet.runner_id.keepers.subnet_id
+  subnet_id                   = random_pet.runner_id[count.index].keepers.subnet_id
   associate_public_ip_address = true
   monitoring                  = true
   disable_api_termination     = false
