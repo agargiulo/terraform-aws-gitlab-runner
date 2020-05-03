@@ -12,3 +12,16 @@ hostname ${hostname}
 # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
 sed -i '' 's/concurrent = 1/concurrent = ${runner_concurrency}/' /etc/gitlab-runner/config.toml
 systemctl restart gitlab-runner
+
+# I'm sure I can add this to the AMI build, but that's slow.
+# At least this way, if there's an issue, fixing it is easier.
+# Once this is working for sure, I'll bake it into the AMI. ~agargiulo
+cat << UNREGISTER_EOF > /tmp/unregister_runners.sh
+#!/usr/bin/env bash
+if [[ "\$1" != "reboot" ]]; then
+  gitlab-runner unregister --all-runners
+fi
+UNREGISTER_EOF
+
+# https://www.freedesktop.org/software/systemd/man/systemd-halt.service.html
+install -p -m 0755 /tmp/unregister_runners.sh /usr/lib/systemd/system-shutdown/unregister_runners.sh
