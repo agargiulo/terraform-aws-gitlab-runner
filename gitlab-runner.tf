@@ -20,7 +20,7 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 }
 
 resource "random_pet" "runner_id" {
-  keepers {
+  keepers = {
     ami_id    = data.aws_ami.gitlab_runner_centos7_docker.id
     subnet_id = var.runner_ec2.subnet_id
   }
