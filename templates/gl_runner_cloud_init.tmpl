@@ -6,12 +6,15 @@ cat << EOF > /tmp/gitlab-runner.template.toml
 concurrent = ${runner_concurrency}
 
 [[runners]]
+  name = "${hostname}"
+  url  = "https://${gitlab_host}/"
+  executor = "docker"
+  [runners.docker]
+    image = "${docker_image}"
 EOF
 
 /usr/bin/gitlab-runner register \
 --non-interactive \
 --template-config /tmp/gitlab-runner.template.toml \
---url 'https://${gitlab_host}/' \
 --registration-token '${registration_token}' \
---executor docker --docker-image ${docker_image} \
 --locked=${locked} --tag-list ${runner_tags} --run-untagged=${run_untagged}
