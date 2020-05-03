@@ -2,19 +2,13 @@
 
 hostname ${hostname}
 
-cat << EOF > /tmp/gitlab-runner.template.toml
-concurrent = ${runner_concurrency}
-
-[[runners]]
-  name = "${hostname}"
-  url  = "https://${gitlab_host}/"
-  executor = "docker"
-  [runners.docker]
-    image = "${docker_image}"
-EOF
-
 /usr/bin/gitlab-runner register \
 --non-interactive \
---template-config /tmp/gitlab-runner.template.toml \
+--url 'https://${gitlab_host}/' \
 --registration-token '${registration_token}' \
+--executor docker --docker-image ${docker_image} \
 --locked=${locked} --tag-list ${runner_tags} --run-untagged=${run_untagged}
+
+# I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
+sed -i '' 's/concurrent = 1/concurrent = ${runner_concurrency}/' /etc/gitlab-runner/config.toml
+systemctl restart gitlab-runner
