@@ -17,6 +17,7 @@ variable "runner_ec2" {
     subnet_id       = ""
     ssh_key_pub     = ""
     instance_role   = "terraform_runner"
+    credit_spec     = "standard"
   }
 }
 

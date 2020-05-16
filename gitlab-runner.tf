@@ -49,7 +49,7 @@ resource "aws_instance" "gitlab_runner" {
     volume_size = "8"
   }
   credit_specification {
-    cpu_credits = "unlimited"
+    cpu_credits = var.runner_ec2.credit_spec
   }
   lifecycle {
     ignore_changes        = [tags]
