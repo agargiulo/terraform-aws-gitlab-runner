@@ -1,6 +1,6 @@
 variable "prefix" { default = "gitlab-runner" }
 
-variable "runner_version" { default = "13.10.1" }
+variable "runner_version" { default = "13.0.1" }
 
 variable "ami" {
   default = {
@@ -26,7 +26,7 @@ variable "runner_register" {
     gitlab_host          = "example.com"
     tld                  = ""
     ci_token             = ""
-    default_docker_image = "alpine:3.11.6"
+    default_docker_image = "alpine:3.12.0"
     default_tags         = "tag-a,tag-b"
     locked               = false
     run_untagged         = false
