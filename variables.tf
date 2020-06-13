@@ -1,16 +1,18 @@
 variable "prefix" { default = "gitlab-runner" }
 
-variable "runner_version" { default = "13.0.1" }
+variable "ami_slugs" {
+  default = [
+    "master"
+  ]
+}
 
-variable "ami" {
-  default = {
-    owner        = "self"
-    version_slug = "master"
-  }
+variable "ami_owner" {
+  default = "self"
 }
 
 variable "runner_ec2" {
   default = {
+    // This is the count PER item in `var.ami_slugs`
     count           = 1
     instance_type   = "t2.micro"
     security_groups = []

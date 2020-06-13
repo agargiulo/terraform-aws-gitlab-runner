@@ -1,11 +1,12 @@
 data "aws_ami" "gitlab_runner_centos7_docker" {
+  for_each         = local.runner_instances_map
   executable_users = ["self"]
   most_recent      = true
-  owners           = [var.ami.owner]
+  owners           = [var.ami_owner]
 
   filter {
     name   = "name"
-    values = ["ci-cd_${var.ami.version_slug}.gitlab-runner_${var.runner_version}.centos_7.*"]
+    values = ["ci-cd_${each.value.glr_rel_slug}.gitlab-runner_*.centos_7.*"]
   }
 }
 
@@ -20,26 +21,26 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 }
 
 resource "random_pet" "runner_id" {
-  count = var.runner_ec2.count
+  for_each = local.runner_instances_map
   keepers = {
-    ami_id    = data.aws_ami.gitlab_runner_centos7_docker.id
+    ami_id    = data.aws_ami.gitlab_runner_centos7_docker[each.key].id
     subnet_id = var.runner_ec2.subnet_id
   }
 }
 
 resource "aws_instance" "gitlab_runner" {
-  count                       = var.runner_ec2.count
-  ami                         = random_pet.runner_id[count.index].keepers.ami_id
+  for_each                    = local.runner_instances_map
+  ami                         = random_pet.runner_id[each.key].keepers.ami_id
   instance_type               = var.runner_ec2.instance_type
   vpc_security_group_ids      = var.runner_ec2.security_groups
-  subnet_id                   = random_pet.runner_id[count.index].keepers.subnet_id
+  subnet_id                   = random_pet.runner_id[each.key].keepers.subnet_id
   associate_public_ip_address = true
   monitoring                  = true
   disable_api_termination     = false
   iam_instance_profile        = aws_iam_instance_profile.terraform_runner.name
   key_name                    = aws_key_pair.gitlab_runner_ssh.key_name
   tags = {
-    Name = "${var.prefix}-gitlab-runner-${random_pet.runner_id[count.index].id}"
+    Name = "${var.prefix}-gitlab-runner-${random_pet.runner_id[each.key].id}"
   }
   volume_tags = {
     Name = "${var.prefix}-gitlab-runner"
@@ -58,7 +59,7 @@ resource "aws_instance" "gitlab_runner" {
   user_data = templatefile(
     "${path.module}/templates/gl_runner_cloud_init.tmpl",
     {
-      hostname : "gitlab-ci-runner-${random_pet.runner_id[count.index].id}.build.${var.runner_register.tld}",
+      hostname : "gitlab-ci-runner-${random_pet.runner_id[each.key].id}.build.${var.runner_register.tld}",
       registration_token : var.runner_register.ci_token,
       docker_image : var.runner_register.default_docker_image,
       runner_tags : var.runner_register.default_tags,
