@@ -1,6 +1,6 @@
 variable "prefix" { default = "gitlab-runner" }
 
-variable "runner_version" { default = "12.10.1" }
+variable "runner_version" { default = "13.10.1" }
 
 variable "ami" {
   default = {
