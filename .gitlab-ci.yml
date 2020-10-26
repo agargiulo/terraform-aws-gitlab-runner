@@ -1,15 +1,26 @@
 default:
-  image:
-    name: hashicorp/terraform:light
-    entrypoint: [""]
   tags:
-    - shared-exec-docker
+    - agargiulo-ci-cd
+    - debian
 
 stages:
   - test
 
-terraform_fmt_check:
+terraform_12_fmt_check:
   stage: test
+  image:
+    name: hashicorp/terraform:0.12.29
+    entrypoint: [ "" ]
   script:
     - terraform --version
     - terraform fmt -diff -check
+
+terraform_13_fmt_check:
+  stage: test
+  image:
+    name: hashicorp/terraform:0.13.4
+    entrypoint: [ "" ]
+  script:
+    - terraform --version
+    - terraform fmt -diff -check
+
