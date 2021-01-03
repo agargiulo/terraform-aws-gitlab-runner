@@ -1,5 +1,5 @@
 data "aws_ami" "gitlab_runner_docker" {
-  for_each         = local.runner_instances_map
+  for_each         = var.runner_ec2
   executable_users = ["self"]
   most_recent      = true
   owners           = [var.ami_owner]
@@ -7,7 +7,7 @@ data "aws_ami" "gitlab_runner_docker" {
 
   filter {
     name   = "name"
-    values = ["ci-cd_${each.value["glr_rel_slug"]}.gitlab-runner_*"]
+    values = ["ci-cd_${each.value["ami_slug"]}.gitlab-runner_*"]
   }
 }
 
@@ -22,18 +22,18 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 }
 
 resource "random_pet" "runner_id" {
-  for_each = local.runner_instances_map
+  for_each = var.runner_ec2
   keepers = {
     ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
-    subnet_id = var.runner_ec2.subnet_id
+    subnet_id = each.value.subnet_id
   }
 }
 
 resource "aws_instance" "gitlab_runner" {
-  for_each                    = local.runner_instances_map
+  for_each                    = var.runner_ec2
   ami                         = random_pet.runner_id[each.key].keepers.ami_id
-  instance_type               = var.runner_ec2.instance_type
-  vpc_security_group_ids      = var.runner_ec2.security_groups
+  instance_type               = each.value.instance_type
+  vpc_security_group_ids      = each.value.security_groups
   subnet_id                   = random_pet.runner_id[each.key].keepers.subnet_id
   associate_public_ip_address = true
   monitoring                  = true
@@ -65,14 +65,14 @@ resource "aws_instance" "gitlab_runner" {
         "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
         data.aws_ami.gitlab_runner_docker[each.key].name
       )["dist"],
-      tld : var.runner_register.tld,
-      registration_token : var.runner_register.ci_token,
-      docker_image : var.runner_register.default_docker_image,
-      runner_tags : var.runner_register.default_tags,
-      gitlab_host : var.runner_register.gitlab_host,
-      locked : var.runner_register.locked,
-      run_untagged : var.runner_register.run_untagged,
-      runner_concurrency : var.runner_register.runner_concurrency
+      tld : each.value.register.tld,
+      registration_token : each.value.register.ci_token,
+      docker_image : each.value.register.default_docker_image,
+      runner_tags : each.value.register.default_tags,
+      gitlab_host : each.value.register.gitlab_host,
+      locked : each.value.register.locked,
+      run_untagged : each.value.register.run_untagged,
+      runner_concurrency : each.value.register.runner_concurrency
     }
   )
 }
