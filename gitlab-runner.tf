@@ -3,6 +3,7 @@ data "aws_ami" "gitlab_runner_docker" {
   executable_users = ["self"]
   most_recent      = true
   owners           = [var.ami_owner]
+  name_regex       = "centos_7|buster"
 
   filter {
     name   = "name"
@@ -59,7 +60,12 @@ resource "aws_instance" "gitlab_runner" {
   user_data = templatefile(
     "${path.module}/templates/gl_runner_cloud_init.tmpl",
     {
-      hostname : "glr-buster-${random_pet.runner_id[each.key].id}.${var.runner_register.tld}",
+      hostname : "glr-${random_pet.runner_id[each.key].id}",
+      distro : regex(
+        "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
+        data.aws_ami.gitlab_runner_docker[each.key].name
+      )["dist"],
+      tld : var.runner_register.tld,
       registration_token : var.runner_register.ci_token,
       docker_image : var.runner_register.default_docker_image,
       runner_tags : var.runner_register.default_tags,
