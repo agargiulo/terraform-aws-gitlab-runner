@@ -1,6 +1,6 @@
 default:
   tags:
-    - agargiulo-ci-cd
+    - agarg-public-projects
 
 stages:
   - test
