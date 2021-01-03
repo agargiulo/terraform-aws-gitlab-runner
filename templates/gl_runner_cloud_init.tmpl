@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function cloud_init() {
-  hostname ${hostname}
+  hostname "${hostname}.${distro}.${tld}"
 
   /usr/bin/gitlab-runner register \
   --non-interactive \

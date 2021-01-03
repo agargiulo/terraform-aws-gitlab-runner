@@ -1,15 +1,34 @@
 default:
-  image:
-    name: hashicorp/terraform:light
-    entrypoint: [""]
   tags:
-    - shared-exec-docker
+    - agargiulo-ci-cd
 
 stages:
   - test
 
-terraform_fmt_check:
+terraform_12_fmt_check:
   stage: test
+  image:
+    name: hashicorp/terraform:0.12.29
+    entrypoint: [ "" ]
   script:
     - terraform --version
     - terraform fmt -diff -check
+
+terraform_13_fmt_check:
+  stage: test
+  image:
+    name: hashicorp/terraform:0.13.5
+    entrypoint: [ "" ]
+  script:
+    - terraform --version
+    - terraform fmt -diff -check
+
+terraform_latest_fmt_check:
+  stage: test
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [ "" ]
+  script:
+    - terraform --version
+    - terraform fmt -diff -check
+  allow_failure: true

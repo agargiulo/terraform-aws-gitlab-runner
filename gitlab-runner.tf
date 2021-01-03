@@ -1,12 +1,13 @@
-data "aws_ami" "gitlab_runner_centos7_docker" {
+data "aws_ami" "gitlab_runner_docker" {
   for_each         = local.runner_instances_map
   executable_users = ["self"]
   most_recent      = true
   owners           = [var.ami_owner]
+  name_regex       = "centos_7|buster"
 
   filter {
     name   = "name"
-    values = ["ci-cd_${each.value.glr_rel_slug}.gitlab-runner_*.centos_7.*"]
+    values = ["ci-cd_${each.value["glr_rel_slug"]}.gitlab-runner_*"]
   }
 }
 
@@ -23,7 +24,7 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 resource "random_pet" "runner_id" {
   for_each = local.runner_instances_map
   keepers = {
-    ami_id    = data.aws_ami.gitlab_runner_centos7_docker[each.key].id
+    ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
     subnet_id = var.runner_ec2.subnet_id
   }
 }
@@ -59,7 +60,12 @@ resource "aws_instance" "gitlab_runner" {
   user_data = templatefile(
     "${path.module}/templates/gl_runner_cloud_init.tmpl",
     {
-      hostname : "gitlab-ci-runner-${random_pet.runner_id[each.key].id}.build.${var.runner_register.tld}",
+      hostname : "glr-${random_pet.runner_id[each.key].id}",
+      distro : regex(
+        "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
+        data.aws_ami.gitlab_runner_docker[each.key].name
+      )["dist"],
+      tld : var.runner_register.tld,
       registration_token : var.runner_register.ci_token,
       docker_image : var.runner_register.default_docker_image,
       runner_tags : var.runner_register.default_tags,

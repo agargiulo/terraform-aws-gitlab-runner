@@ -2,7 +2,7 @@ variable "prefix" { default = "gitlab-runner" }
 
 variable "ami_slugs" {
   default = [
-    "master"
+    "main"
   ]
 }
 

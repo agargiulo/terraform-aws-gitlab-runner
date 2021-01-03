@@ -1,6 +1,6 @@
 terraform {
   required_providers {
-    aws    = "~> 2.66"
+    aws    = ">= 2.66"
     random = "~> 2.2"
   }
 }
@@ -15,12 +15,12 @@ terraform {
 // That's all good. Now, remove the first without killing the second. :(
 // If I had unique names, then I could have
 //   with names:
-//    aws_instance.run['12.10-001'] <* start
+//    aws_instance.run['12.10_1'] <* start
 //    --
-//    aws_instance.run['12.10-001'] <* end
-//    aws_instance.run['13.1-001']
+//    aws_instance.run['12.10_1'] <* end
+//    aws_instance.run['13.1_1']
 //
-// Then removing the first is way easier. But I need to figure out how to make this work ..
+// Then removing the first is way easier.
 // This is not helpful if you just start with a single v12 runner and want to replace it.
 // But it will help replace a single v12 with a single v13.
 // TODO: Figure out cleaner ways to handle this?
@@ -35,7 +35,7 @@ locals {
   ])
 
   runner_instances_map = {
-    for instance in local.runner_instances : "${instance.glr_rel_slug}_${instance.id}" => instance
+    for instance in local.runner_instances : "${instance["glr_rel_slug"]}_${instance["id"]}" => instance
   }
 }
 
