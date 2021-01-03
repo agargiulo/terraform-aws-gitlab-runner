@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
 function cloud_init() {
-  hostname "${hostname}.${distro}.${tld}"
+  hostname ${hostname}.${distro}.${tld}
+if [[ "${distro}" -eq "buster" ]]; then
+  cat << HOSTS_EOF >> /etc/hosts
 
+127.0.0.1 ${hostname}.${distro}.${tld}
+HOSTS_EOF
+fi
   /usr/bin/gitlab-runner register \
   --non-interactive \
   --url 'https://${gitlab_host}/' \
