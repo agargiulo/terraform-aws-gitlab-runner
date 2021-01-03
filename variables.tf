@@ -1,6 +1,10 @@
-variable "prefix" { default = "gitlab-runner" }
+variable "prefix" {
+  type    = string
+  default = "gitlab-runner"
+}
 
 variable "ami_owner" {
+  type    = string
   default = "self"
 }
 

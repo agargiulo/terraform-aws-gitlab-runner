@@ -11,24 +11,24 @@ data "aws_ami" "gitlab_runner_docker" {
   }
 }
 
-resource "aws_iam_instance_profile" "terraform_runner" {
-  for_each = var.runner_ec2
-  name     = "${var.prefix}-${each.value.instance_role}-inst-profile"
-  role     = each.value.instance_role
-}
-
-resource "aws_key_pair" "gitlab_runner_ssh" {
-  for_each   = var.runner_ec2
-  key_name   = "${var.prefix}-gitlab-runner-ssh"
-  public_key = each.value.ssh_key_pub
-}
-
 resource "random_pet" "runner_id" {
   for_each = var.runner_ec2
   keepers = {
     ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
     subnet_id = each.value.subnet_id
   }
+}
+
+resource "aws_iam_instance_profile" "terraform_runner" {
+  for_each = var.runner_ec2
+  name     = "${var.prefix}-${random_pet.runner_id[each.key].id}-${each.value.instance_role}-profile"
+  role     = each.value.instance_role
+}
+
+resource "aws_key_pair" "gitlab_runner_ssh" {
+  for_each   = var.runner_ec2
+  key_name   = "${var.prefix}-gitlab-runner-ssh-${random_pet.runner_id[each.key].id}"
+  public_key = each.value.ssh_key_pub
 }
 
 resource "aws_instance" "gitlab_runner" {
