@@ -1,4 +1,4 @@
-data "aws_ami" "gitlab_runner_deb_buster_docker" {
+data "aws_ami" "gitlab_runner_docker" {
   for_each         = local.runner_instances_map
   executable_users = ["self"]
   most_recent      = true
@@ -6,7 +6,7 @@ data "aws_ami" "gitlab_runner_deb_buster_docker" {
 
   filter {
     name   = "name"
-    values = ["ci-cd_${each.value.glr_rel_slug}.gitlab-runner_*.buster.*"]
+    values = ["ci-cd_${each.value["glr_rel_slug"]}.gitlab-runner_*"]
   }
 }
 
@@ -23,7 +23,7 @@ resource "aws_key_pair" "gitlab_runner_ssh" {
 resource "random_pet" "runner_id" {
   for_each = local.runner_instances_map
   keepers = {
-    ami_id    = data.aws_ami.gitlab_runner_deb_buster_docker[each.key].id
+    ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
     subnet_id = var.runner_ec2.subnet_id
   }
 }
@@ -59,7 +59,7 @@ resource "aws_instance" "gitlab_runner" {
   user_data = templatefile(
     "${path.module}/templates/gl_runner_cloud_init.tmpl",
     {
-      hostname : "glr-buster-${random_pet.runner_id[each.key].id}.build.${var.runner_register.tld}",
+      hostname : "glr-buster-${random_pet.runner_id[each.key].id}.${var.runner_register.tld}",
       registration_token : var.runner_register.ci_token,
       docker_image : var.runner_register.default_docker_image,
       runner_tags : var.runner_register.default_tags,

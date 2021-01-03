@@ -1,7 +1,6 @@
 default:
   tags:
     - agargiulo-ci-cd
-    - debian
 
 stages:
   - test
@@ -18,9 +17,18 @@ terraform_12_fmt_check:
 terraform_13_fmt_check:
   stage: test
   image:
-    name: hashicorp/terraform:0.13.4
+    name: hashicorp/terraform:0.13.5
     entrypoint: [ "" ]
   script:
     - terraform --version
     - terraform fmt -diff -check
 
+terraform_latest_fmt_check:
+  stage: test
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [ "" ]
+  script:
+    - terraform --version
+    - terraform fmt -diff -check
+  allow_failure: true
