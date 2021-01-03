@@ -56,7 +56,7 @@ resource "aws_instance" "gitlab_runner" {
     cpu_credits = each.value.credit_spec
   }
   lifecycle {
-    ignore_changes        = all
+    ignore_changes        = [tags]
     create_before_destroy = true
   }
   user_data = templatefile(
