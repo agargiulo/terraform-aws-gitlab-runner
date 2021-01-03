@@ -12,13 +12,15 @@ data "aws_ami" "gitlab_runner_docker" {
 }
 
 resource "aws_iam_instance_profile" "terraform_runner" {
-  name = "${var.prefix}-${var.runner_ec2.instance_role}-terraform-runner"
-  role = var.runner_ec2.instance_role
+  for_each = var.runner_ec2
+  name     = "${var.prefix}-${each.value.instance_role}-inst-profile"
+  role     = each.value.instance_role
 }
 
 resource "aws_key_pair" "gitlab_runner_ssh" {
+  for_each   = var.runner_ec2
   key_name   = "${var.prefix}-gitlab-runner-ssh"
-  public_key = var.runner_ec2.ssh_key_pub
+  public_key = each.value.ssh_key_pub
 }
 
 resource "random_pet" "runner_id" {
@@ -38,8 +40,8 @@ resource "aws_instance" "gitlab_runner" {
   associate_public_ip_address = true
   monitoring                  = true
   disable_api_termination     = false
-  iam_instance_profile        = aws_iam_instance_profile.terraform_runner.name
-  key_name                    = aws_key_pair.gitlab_runner_ssh.key_name
+  iam_instance_profile        = aws_iam_instance_profile.terraform_runner[each.key].name
+  key_name                    = aws_key_pair.gitlab_runner_ssh[each.key].key_name
   tags = {
     Name = "${var.prefix}-gitlab-runner-${random_pet.runner_id[each.key].id}"
   }
@@ -51,7 +53,7 @@ resource "aws_instance" "gitlab_runner" {
     volume_size = "8"
   }
   credit_specification {
-    cpu_credits = var.runner_ec2.credit_spec
+    cpu_credits = each.value.credit_spec
   }
   lifecycle {
     ignore_changes        = all
