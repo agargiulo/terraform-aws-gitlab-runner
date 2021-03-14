@@ -16,6 +16,28 @@ resource "random_pet" "runner_id" {
   keepers = {
     ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
     subnet_id = each.value.subnet_id
+    user_data = templatefile(
+      "${path.module}/templates/gl_runner_cloud_init.tmpl",
+      {
+        distro : regex(
+          "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
+          data.aws_ami.gitlab_runner_docker[each.key].name
+        )["dist"],
+        tld : each.value.register.tld,
+        registration_token : each.value.register.ci_token,
+        docker_image : each.value.register.default_docker_image,
+        runner_tags : each.value.register.default_tags,
+        gitlab_host : each.value.register.gitlab_host,
+        locked : each.value.register.locked,
+        run_untagged : each.value.register.run_untagged,
+        runner_concurrency : each.value.register.runner_concurrency,
+        s3_cache_config : merge(
+          var.s3_cache_config,
+          { bucket = var.s3_cache_config.enabled ? aws_s3_bucket.gitlab_runner_s3_cache[0].bucket : "" },
+          each.value.s3_cache
+        )
+      }
+    )
   }
 }
 
@@ -43,14 +65,16 @@ resource "aws_instance" "gitlab_runner" {
   iam_instance_profile        = aws_iam_instance_profile.terraform_runner[each.key].name
   key_name                    = aws_key_pair.gitlab_runner_ssh[each.key].key_name
   tags = {
-    Name = "${var.prefix}-gitlab-runner-${random_pet.runner_id[each.key].id}"
+    Name       = "${var.prefix}-gitlab-runner-${random_pet.runner_id[each.key].id}"
+    RunnerTags = each.value.register.default_tags
   }
   volume_tags = {
-    Name = "${var.prefix}-gitlab-runner"
+    Name       = "${var.prefix}-gitlab-runner-${random_pet.runner_id[each.key].id}"
+    RunnerTags = each.value.register.default_tags
   }
   root_block_device {
     volume_type = "gp2"
-    volume_size = "8"
+    volume_size = 8
   }
   credit_specification {
     cpu_credits = each.value.credit_spec
@@ -59,22 +83,5 @@ resource "aws_instance" "gitlab_runner" {
     ignore_changes        = [tags]
     create_before_destroy = true
   }
-  user_data = templatefile(
-    "${path.module}/templates/gl_runner_cloud_init.tmpl",
-    {
-      hostname : "glr-${random_pet.runner_id[each.key].id}",
-      distro : regex(
-        "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
-        data.aws_ami.gitlab_runner_docker[each.key].name
-      )["dist"],
-      tld : each.value.register.tld,
-      registration_token : each.value.register.ci_token,
-      docker_image : each.value.register.default_docker_image,
-      runner_tags : each.value.register.default_tags,
-      gitlab_host : each.value.register.gitlab_host,
-      locked : each.value.register.locked,
-      run_untagged : each.value.register.run_untagged,
-      runner_concurrency : each.value.register.runner_concurrency
-    }
-  )
+  user_data = random_pet.runner_id[each.key].keepers.user_data
 }

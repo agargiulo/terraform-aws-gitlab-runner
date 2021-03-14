@@ -8,6 +8,18 @@ variable "ami_owner" {
   default = "self"
 }
 
+variable "s3_cache_config" {
+  description = "Enable and configure the region for using s3 as a runner cache"
+  type = object({
+    enabled = bool
+    region  = string
+  })
+  default = {
+    enabled = false
+    region  = ""
+  }
+}
+
 variable "runner_ec2" {
   type = map(object({
     ami_slug        = string
@@ -17,6 +29,11 @@ variable "runner_ec2" {
     security_groups = list(string)
     ssh_key_pub     = string
     subnet_id       = string
+    s3_cache = object({
+      enabled = bool
+      prefix  = string
+      shared  = bool
+    })
     register = object({
       gitlab_host          = string
       tld                  = string
@@ -37,6 +54,11 @@ variable "runner_ec2" {
       security_groups = []
       ssh_key_pub     = ""
       subnet_id       = ""
+      s3_cache = {
+        enabled = false
+        prefix  = ""
+        shared  = false
+      }
       register = {
         gitlab_host          = "gitlab.example.com"
         tld                  = "tld.example.com"

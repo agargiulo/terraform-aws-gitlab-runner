@@ -1,24 +1,37 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2016
 function cloud_init() {
-  hostname ${hostname}.${distro}.${tld}
-if [[ "${distro}" -eq "buster" ]]; then
-  cat << HOSTS_EOF >> /etc/hosts
+  # shellcheck disable=SC2154
+  # shellcheck disable=SC2086
 
-127.0.0.1 ${hostname}.${distro}.${tld}
-HOSTS_EOF
-fi
+  runner_name=$(aws ec2 describe-instances --instance-ids "$(cloud-init query instance_id)" --query 'Reservations[0].Instances[0].Tags[? Key == `Name`].Value' --region=us-west-2 --output text)
+
   /usr/bin/gitlab-runner register \
   --non-interactive \
   --url 'https://${gitlab_host}/' \
   --registration-token '${registration_token}' \
   --executor docker --docker-image ${docker_image} \
-  --locked=${locked} --tag-list ${runner_tags} --run-untagged=${run_untagged}
+  --locked=${locked} --tag-list ${runner_tags} --run-untagged=${run_untagged} \
+  --name "$runner_name"
 
   # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
   sed -i'' 's/concurrent = 1/concurrent = ${runner_concurrency}/' /etc/gitlab-runner/config.toml
-  systemctl restart gitlab-runner
+  # shellcheck disable=SC1004
+  # shellcheck disable=SC2154
+  if [[ "${s3_cache_config["enabled"]}" == "true" ]]; then
+    sed -i '/runners.cache]/a \
+    Type   = "s3" \
+    Path   = "${s3_cache_config["prefix"]}" \
+    Shared = ${s3_cache_config["shared"]}' /etc/gitlab-runner/config.toml
+    sed -i '/runners.cache.s3]/a \
+      ServerAddress  = "s3.amazonaws.com" \
+      BucketName     = "${s3_cache_config["bucket"]}" \
+      BucketLocation = "${s3_cache_config["region"]}" \
+      Insecure       = false' /etc/gitlab-runner/config.toml
+  fi
 
+  systemctl restart gitlab-runner
   # I'm sure I can add this to the AMI build, but that's slow.
   # At least this way, if there's an issue, fixing it is easier.
   # Once this is working for sure, I'll bake it into the AMI. ~agargiulo
