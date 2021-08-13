@@ -73,7 +73,7 @@ resource "aws_instance" "gitlab_runner" {
     RunnerTags = each.value.register.default_tags
   }
   root_block_device {
-    volume_type = "gp2"
+    volume_type = "gp3"
     volume_size = 8
   }
   credit_specification {
