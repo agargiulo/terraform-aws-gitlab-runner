@@ -45,30 +45,4 @@ variable "runner_ec2" {
       runner_concurrency   = number
     })
   }))
-  default = {
-    main = {
-      ami_slug        = "main"
-      credit_spec     = "standard"
-      instance_role   = "terraform_runner"
-      instance_type   = "t3a.nano"
-      security_groups = []
-      ssh_key_pub     = ""
-      subnet_id       = ""
-      s3_cache = {
-        enabled = false
-        prefix  = ""
-        shared  = false
-      }
-      register = {
-        gitlab_host          = "gitlab.example.com"
-        tld                  = "tld.example.com"
-        ci_token             = "XxXxXxXxXxXx"
-        default_docker_image = "alpine:3.12.0"
-        default_tags         = "tag-a,tag-b"
-        locked               = false
-        run_untagged         = false
-        runner_concurrency   = 1
-      }
-    }
-  }
 }
