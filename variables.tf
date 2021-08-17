@@ -13,11 +13,11 @@ variable "s3_cache_config" {
   type = object({
     enabled = bool
     region  = string
+    logging = object({
+      enabled = bool
+      bucket  = string
+    })
   })
-  default = {
-    enabled = false
-    region  = ""
-  }
 }
 
 variable "runner_ec2" {
