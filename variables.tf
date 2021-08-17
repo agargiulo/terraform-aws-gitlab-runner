@@ -29,6 +29,7 @@ variable "runner_ec2" {
     security_groups = list(string)
     ssh_key_pub     = string
     subnet_id       = string
+    ebs_root_size   = number
     s3_cache = object({
       enabled = bool
       prefix  = string
