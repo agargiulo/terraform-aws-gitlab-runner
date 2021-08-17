@@ -74,7 +74,7 @@ resource "aws_instance" "gitlab_runner" {
   }
   root_block_device {
     volume_type = "gp3"
-    volume_size = 8
+    volume_size = each.value.ebs_root_size
   }
   credit_specification {
     cpu_credits = each.value.credit_spec
