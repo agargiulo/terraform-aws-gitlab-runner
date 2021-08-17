@@ -17,6 +17,7 @@ variable "s3_cache_config" {
       enabled = bool
       bucket  = string
     })
+    sse_enabled = bool
   })
 }
 
