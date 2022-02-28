@@ -3,7 +3,7 @@ data "aws_ami" "gitlab_runner_docker" {
   executable_users = ["self"]
   most_recent      = true
   owners           = [var.ami_owner]
-  name_regex       = "centos_7|buster"
+  name_regex       = "centos_7|buster|bullseye"
 
   filter {
     name   = "name"
