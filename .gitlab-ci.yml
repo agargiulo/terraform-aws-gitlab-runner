@@ -5,24 +5,6 @@ default:
 stages:
   - test
 
-terraform_14_fmt_check:
-  stage: test
-  image:
-    name: hashicorp/terraform:0.14.11
-    entrypoint: [ "" ]
-  script:
-    - terraform --version
-    - terraform fmt -diff -check
-
-terraform_15_fmt_check:
-  stage: test
-  image:
-    name: hashicorp/terraform:0.15.5
-    entrypoint: [ "" ]
-  script:
-    - terraform --version
-    - terraform fmt -diff -check
-
 terraform_latest_fmt_check:
   stage: test
   image:
