@@ -33,7 +33,7 @@ resource "random_pet" "runner_id" {
         runner_concurrency : each.value.register.runner_concurrency,
         s3_cache_config : merge(
           var.s3_cache_config,
-          { bucket = var.s3_cache_config.enabled ? aws_s3_bucket.gitlab_runner_s3_cache[0].bucket : "" },
+          { bucket = var.s3_cache_config.enabled ? aws_s3_bucket.gitlab_runner_s3_cache["enabled"].bucket : "" },
           each.value.s3_cache
         )
       }
