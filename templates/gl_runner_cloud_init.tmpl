@@ -2,7 +2,32 @@
 
 # "Expressions don't expand in single quotes" - yes but they are expanded before bash runs
 # shellcheck disable=SC2016
-function cloud_init() {
+
+function docker_repo() {
+  local docker_gpg_key_url="https://download.docker.com/linux/debian/gpg"
+  local docker_apt_key_path='/usr/share/keyrings/docker-archive-keyring.gpg'
+
+  # Manually add docker repo (I guess they aren't as fancy as gitlab)
+  curl -fsSL "$${docker_gpg_key_url}" | gpg --dearmor -o "$${docker_apt_key_path}"
+  cat << DOCKER_SOURCES_EOF > /etc/apt/sources.list.d/docker.list
+deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable
+DOCKER_SOURCES_EOF
+}
+
+function glr_repo() {
+  local glr_gpg_key_url glr_apt_key_path glr_apt_config_url glr_apt_source_path
+  glr_gpg_key_url="https://packages.gitlab.com/runner/gitlab-runner/gpgkey"
+  glr_apt_key_path='/usr/share/keyrings/gitlab-runner-archive-keyring.gpg'
+  glr_apt_config_url="https://packages.gitlab.com/install/repositories/runner/gitlab-runner/config_file.list?os=debian&dist=$(lsb_release -cs)&source=script"
+  glr_apt_source_path="/etc/apt/sources.list.d/runner_gitlab-runner.list"
+
+  # Install Gitlab Runner repo
+  curl -fsSL "$${glr_apt_config_url}" > "$${glr_apt_source_path}"
+  sed -ri'' "s#^(deb(-src)?)#\1 [signed-by=$${glr_apt_key_path}] #" "$${glr_apt_source_path}"
+  curl -fsSL "$${glr_gpg_key_url}" | gpg --dearmor -o "$${glr_apt_key_path}"
+}
+
+function glr_register() {
   runner_name=$(aws ec2 describe-instances --instance-ids "$(cloud-init query instance_id)" --query 'Reservations[0].Instances[0].Tags[? Key == `Name`].Value' --region=us-west-2 --output text)
 
 
@@ -35,6 +60,26 @@ UNREGISTER_EOF
 
   # https://www.freedesktop.org/software/systemd/man/systemd-halt.service.html
   install -p -m 0755 /tmp/unregister_runners.sh /usr/lib/systemd/system-shutdown/unregister_runners.sh
+}
+
+function cloud_init() {
+  apt-get update
+  apt-get upgrade -y
+  apt-get -y install \
+    apt-transport-https \
+    ca-certificates \
+    curl gnupg gnupg-agent \
+    htop mosh \
+    software-properties-common
+
+  docker_repo
+  glr_repo
+
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io gitlab-runner='${glr_version}'
+  echo '30 12 * * 4 /usr/share/gitlab-runner/clear-docker-cache' > /etc/cron.d/99-gitlab-runner-clean-cache
+
+  glr_register
 }
 
 cloud_init 1>/var/log/cloud-init-user.log 2>/var/log/cloud-init-user-error.log

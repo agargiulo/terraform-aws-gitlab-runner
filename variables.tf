@@ -23,7 +23,7 @@ variable "s3_cache_config" {
 
 variable "runner_ec2" {
   type = map(object({
-    ami_slug        = string
+    glr_version     = string
     credit_spec     = string
     instance_role   = string
     instance_type   = string
