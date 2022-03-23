@@ -1,28 +1,31 @@
-data "aws_ami" "gitlab_runner_docker" {
-  for_each         = var.runner_ec2
-  executable_users = ["self"]
-  most_recent      = true
-  owners           = [var.ami_owner]
-  name_regex       = "centos_7|buster|bullseye"
+# Info for this AMI can be found here: https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
+data "aws_ami" "debian_bullseye" {
+  owners      = ["136693071363"]
+  most_recent = true
 
   filter {
     name   = "name"
-    values = ["ci-cd_${each.value["ami_slug"]}.gitlab-runner_*"]
+    values = ["debian-11-amd64-2022*"]
+  }
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
 
 resource "random_pet" "runner_id" {
   for_each = var.runner_ec2
   keepers = {
-    ami_id    = data.aws_ami.gitlab_runner_docker[each.key].id
+    ami_id    = data.aws_ami.debian_bullseye.id
     subnet_id = each.value.subnet_id
     user_data = templatefile(
       "${path.module}/templates/gl_runner_cloud_init.tmpl",
       {
-        distro : regex(
-          "(?P<dist>${data.aws_ami.gitlab_runner_docker[each.key].name_regex})",
-          data.aws_ami.gitlab_runner_docker[each.key].name
-        )["dist"],
+        glr_version : each.value.glr_version,
         tld : each.value.register.tld,
         registration_token : each.value.register.ci_token,
         docker_image : each.value.register.default_docker_image,
