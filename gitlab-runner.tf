@@ -22,6 +22,7 @@ resource "random_pet" "runner_id" {
   keepers = {
     ami_id    = data.aws_ami.debian_bullseye.id
     subnet_id = each.value.subnet_id
+    pub_key   = each.value.ssh_key_pub
     user_data = templatefile(
       "${path.module}/templates/gl_runner_cloud_init.tmpl",
       {
@@ -51,9 +52,9 @@ resource "aws_iam_instance_profile" "terraform_runner" {
 }
 
 resource "aws_key_pair" "gitlab_runner_ssh" {
-  for_each   = var.runner_ec2
-  key_name   = "${var.prefix}-gitlab-runner-ssh-${random_pet.runner_id[each.key].id}"
-  public_key = each.value.ssh_key_pub
+  for_each        = var.runner_ec2
+  key_name_prefix = "${var.prefix}-glr-${random_pet.runner_id[each.key].id}"
+  public_key      = random_pet.runner_id[each.key].keepers.pub_key
 }
 
 resource "aws_instance" "gitlab_runner" {

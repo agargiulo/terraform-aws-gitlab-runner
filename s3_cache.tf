@@ -8,8 +8,12 @@ resource "aws_s3_bucket_versioning" "gitlab_runner_s3_cache" {
 
   bucket = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
   versioning_configuration {
-    ## TODO: Change this to Disabled once the old buckets are gone
-    status = "Suspended"
+    status = "Disabled"
+  }
+  lifecycle {
+    # This is so that legacy buckets can keep their "Suspended" state but
+    # new buckets should be created without versioning enabled at all.
+    ignore_changes = [versioning_configuration]
   }
 }
 resource "aws_s3_bucket_logging" "gitlab_runner_s3_cache" {
