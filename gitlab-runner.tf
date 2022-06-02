@@ -31,6 +31,7 @@ resource "random_pet" "runner_id" {
         glr_version : each.value.glr_version,
         reg : each.value.register,
         config : each.value.config,
+        swap_enabled : each.value.instance.swap_size != 0,
         s3_cache_config : merge(
           var.s3_cache_config,
           { bucket = var.s3_cache_config.enabled ? aws_s3_bucket.gitlab_runner_s3_cache["enabled"].bucket : "" },
@@ -82,6 +83,14 @@ resource "aws_instance" "gitlab_runner" {
   root_block_device {
     volume_type = "gp3"
     volume_size = each.value.instance.ebs_root_size
+  }
+  dynamic "ebs_block_device" {
+    for_each = each.value.instance.swap_size != 0 ? toset(["swapon"]) : toset([])
+    content {
+      device_name = "/dev/xvds"
+      volume_type = "gp3"
+      volume_size = each.value.instance.swap_size
+    }
   }
   credit_specification {
     cpu_credits = each.value.instance.credit_spec
