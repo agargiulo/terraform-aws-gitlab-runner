@@ -38,7 +38,6 @@ variable "runner_ec2" {
     })
     register = object({
       gitlab_host          = string
-      tld                  = string
       ci_token             = string
       default_docker_image = string
       default_tags         = string
@@ -47,4 +46,9 @@ variable "runner_ec2" {
       runner_concurrency   = number
     })
   }))
+}
+
+variable "route53_zone_name" {
+  description = "Name of the hosted zone for the runners DNS. Empty string disables but caveat, the provider still needs to be set to something"
+  type        = string
 }
