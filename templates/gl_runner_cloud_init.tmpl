@@ -3,6 +3,41 @@
 # "Expressions don't expand in single quotes" - yes but they are expanded before bash runs
 # shellcheck disable=SC2016
 
+%{ if swap_enabled ~}
+function wait_for_nvme() {
+    counter=0
+    device="$${1}"
+    echo "Waiting for device attachment <$${device}>"
+    while [[ ! -b "$${device}" ]]; do
+      sleep 2
+      echo -n '.'
+      counter=$(( counter + 1 ))
+      if [[ $counter -ge 45 ]]; then
+        echo "!!>-<!!>-<!! Waited 90 seconds and no NVME drive present. What happened? !!>-<!!>-<!!" 1>&2
+        exit 69
+      fi
+      ls -lH "$${device}"
+      echo "Found device <$${device}>"
+    done
+}
+
+function swap_init() {
+  wait_for_nvme /dev/xvds
+  # This is the device name set in the ebs_block_device config
+  # AWS Claims it can change because NVME but in my testing Debian AMIs correctly symlink the device to this as well
+  mkswap /dev/xvds -L glob-ebs-swap
+
+  # Make the system less likely to swap -- if memory issues, check back here
+  echo "vm.swappiness=10" > /etc/sysctl.d/local.conf
+  sysctl -f /etc/sysctl.d/local.conf
+
+  swapon -v /dev/xvds
+  cat << FSTAB_UPDATE_EOF >> /etc/fstab
+/dev/xvds swap swap defaults 0 0
+FSTAB_UPDATE_EOF
+}
+
+%{ endif ~}
 function docker_repo() {
   local docker_gpg_key_url="https://download.docker.com/linux/debian/gpg"
   local docker_apt_key_path='/usr/share/keyrings/docker-archive-keyring.gpg'
@@ -10,33 +45,37 @@ function docker_repo() {
   # Manually add docker repo (I guess they aren't as fancy as gitlab)
   curl -fsSL "$${docker_gpg_key_url}" | gpg --dearmor -o "$${docker_apt_key_path}"
   cat << DOCKER_SOURCES_EOF > /etc/apt/sources.list.d/docker.list
-deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable
+deb [arch=amd64 signed-by=$${docker_apt_key_path}] https://download.docker.com/linux/debian $(lsb_release -cs) stable
 DOCKER_SOURCES_EOF
 }
 
 function glr_repo() {
   local glr_gpg_key_url glr_apt_key_path glr_apt_config_url glr_apt_source_path
   glr_gpg_key_url="https://packages.gitlab.com/runner/gitlab-runner/gpgkey"
-  glr_apt_key_path='/usr/share/keyrings/gitlab-runner-archive-keyring.gpg'
+  glr_apt_key_path='/usr/share/keyrings/runner_gitlab-runner-archive-keyring.gpg'
   glr_apt_config_url="https://packages.gitlab.com/install/repositories/runner/gitlab-runner/config_file.list?os=debian&dist=$(lsb_release -cs)&source=script"
   glr_apt_source_path="/etc/apt/sources.list.d/runner_gitlab-runner.list"
 
   # Install Gitlab Runner repo
   curl -fsSL "$${glr_apt_config_url}" > "$${glr_apt_source_path}"
-  sed -ri'' "s#^(deb(-src)?)#\1 [signed-by=$${glr_apt_key_path}] #" "$${glr_apt_source_path}"
   curl -fsSL "$${glr_gpg_key_url}" | gpg --dearmor -o "$${glr_apt_key_path}"
 }
 
 function glr_register() {
   runner_name=$(aws ec2 describe-instances --instance-ids "$(cloud-init query instance_id)" --query 'Reservations[0].Instances[0].Tags[? Key == `Name`].Value' --region=us-west-2 --output text)
 
+  # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
+  sed -i'' 's/concurrent = 1/concurrent = ${config.concurrency}/' /etc/gitlab-runner/config.toml
+  sed -i'' 's/check_interval = 0/check_interval = ${config.check_intvl}/' /etc/gitlab-runner/config.toml
+
+  systemctl restart gitlab-runner
 
   /usr/bin/gitlab-runner register \
   --non-interactive \
-  --url 'https://${gitlab_host}/' \
-  --registration-token '${registration_token}' \
-  --executor docker --docker-image '${docker_image}' \
-  --locked='${locked}' --tag-list '${runner_tags}' --run-untagged='${run_untagged}' \
+  --url 'https://${reg.gitlab_host}/' \
+  --registration-token '${reg.ci_token}' \
+  --executor docker --docker-image '${reg.default_docker_image}' \
+  --locked='${reg.locked}' --tag-list '${reg.default_tags}' --run-untagged='${reg.run_untagged}' \
   --cache-type s3 --cache-path '${s3_cache_config["prefix"]}' --cache-shared='${s3_cache_config["shared"]}'\
   --cache-s3-server-address "s3.amazonaws.com" \
   --cache-s3-bucket-name '${s3_cache_config["bucket"]}' \
@@ -44,10 +83,6 @@ function glr_register() {
   --cache-s3-insecure=false \
   --name "$runner_name"
 
-  # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
-  sed -i'' 's/concurrent = 1/concurrent = ${runner_concurrency}/' /etc/gitlab-runner/config.toml
-
-  systemctl restart gitlab-runner
   # I'm sure I can add this to the AMI build, but that's slow.
   # At least this way, if there's an issue, fixing it is easier.
   # Once this is working for sure, I'll bake it into the AMI. ~agargiulo
@@ -69,9 +104,12 @@ function cloud_init() {
     apt-transport-https \
     ca-certificates \
     curl gnupg gnupg-agent \
-    htop mosh \
+    htop mosh tmux \
     software-properties-common
 
+  %{~ if swap_enabled ~}
+  swap_init
+  %{~ endif ~}
   docker_repo
   glr_repo
 

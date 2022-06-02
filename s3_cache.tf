@@ -1,9 +1,13 @@
 resource "aws_s3_bucket" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
   for_each = var.s3_cache_config.enabled ? toset(["enabled"]) : toset([])
 
   bucket = "${var.prefix}-gl-runner-cache"
 }
 resource "aws_s3_bucket_versioning" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
   for_each = var.s3_cache_config.enabled ? toset(["enabled"]) : toset([])
 
   bucket = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
@@ -17,6 +21,8 @@ resource "aws_s3_bucket_versioning" "gitlab_runner_s3_cache" {
   }
 }
 resource "aws_s3_bucket_logging" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
   for_each = var.s3_cache_config.logging.enabled ? toset(["enabled"]) : toset([])
   bucket   = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
 
@@ -24,6 +30,8 @@ resource "aws_s3_bucket_logging" "gitlab_runner_s3_cache" {
   target_prefix = "${aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket}/"
 }
 resource "aws_s3_bucket_server_side_encryption_configuration" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
   for_each = var.s3_cache_config.sse_enabled ? toset(["enabled"]) : toset([])
   bucket   = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
 
@@ -34,6 +42,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "gitlab_runner_s3_
   }
 }
 resource "aws_s3_bucket_public_access_block" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
   for_each = var.s3_cache_config.enabled ? toset(["enabled"]) : toset([])
 
   bucket                  = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
