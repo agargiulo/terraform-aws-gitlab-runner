@@ -48,6 +48,7 @@ variable "runner_ec2" {
     })
     config = object({
       concurrency = number
+      check_intvl = number
     })
   }))
 }

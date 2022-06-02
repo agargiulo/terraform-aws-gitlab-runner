@@ -31,6 +31,7 @@ function glr_register() {
 
   # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
   sed -i'' 's/concurrent = 1/concurrent = ${config.concurrency}/' /etc/gitlab-runner/config.toml
+  sed -i'' 's/check_interval = 0/check_interval = ${config.check_intvl}/' /etc/gitlab-runner/config.toml
 
   systemctl restart gitlab-runner
 
