@@ -1,5 +1,7 @@
 # Info for this AMI can be found here: https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
 data "aws_ami" "debian_bullseye" {
+  provider = aws.ci
+
   owners      = ["136693071363"]
   most_recent = true
 
@@ -46,19 +48,26 @@ resource "random_pet" "runner_id" {
 }
 
 resource "aws_iam_instance_profile" "terraform_runner" {
+  provider = aws.ci
+
   for_each = var.runner_ec2
   name     = "${var.prefix}-${random_pet.runner_id[each.key].id}-${each.value.instance_role}-profile"
   role     = each.value.instance_role
 }
 
 resource "aws_key_pair" "gitlab_runner_ssh" {
+  provider = aws.ci
+
   for_each        = var.runner_ec2
   key_name_prefix = "${var.prefix}-glr-${random_pet.runner_id[each.key].id}"
   public_key      = random_pet.runner_id[each.key].keepers.pub_key
 }
 
 resource "aws_instance" "gitlab_runner" {
-  for_each                    = var.runner_ec2
+  for_each = var.runner_ec2
+
+  provider = aws.ci
+
   ami                         = random_pet.runner_id[each.key].keepers.ami_id
   instance_type               = each.value.instance_type
   vpc_security_group_ids      = each.value.security_groups
