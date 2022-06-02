@@ -30,13 +30,17 @@ function glr_repo() {
 function glr_register() {
   runner_name=$(aws ec2 describe-instances --instance-ids "$(cloud-init query instance_id)" --query 'Reservations[0].Instances[0].Tags[? Key == `Name`].Value' --region=us-west-2 --output text)
 
+  # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
+  sed -i'' 's/concurrent = 1/concurrent = ${config.concurrency}/' /etc/gitlab-runner/config.toml
+
+  systemctl restart gitlab-runner
 
   /usr/bin/gitlab-runner register \
   --non-interactive \
-  --url 'https://${gitlab_host}/' \
-  --registration-token '${registration_token}' \
-  --executor docker --docker-image '${docker_image}' \
-  --locked='${locked}' --tag-list '${runner_tags}' --run-untagged='${run_untagged}' \
+  --url 'https://${reg.gitlab_host}/' \
+  --registration-token '${reg.ci_token}' \
+  --executor docker --docker-image '${reg.default_docker_image}' \
+  --locked='${reg.locked}' --tag-list '${reg.default_tags}' --run-untagged='${reg.run_untagged}' \
   --cache-type s3 --cache-path '${s3_cache_config["prefix"]}' --cache-shared='${s3_cache_config["shared"]}'\
   --cache-s3-server-address "s3.amazonaws.com" \
   --cache-s3-bucket-name '${s3_cache_config["bucket"]}' \
@@ -44,10 +48,6 @@ function glr_register() {
   --cache-s3-insecure=false \
   --name "$runner_name"
 
-  # I tried. I tried to use a template and that wasn't working right. So on to this way I guess.
-  sed -i'' 's/concurrent = 1/concurrent = ${runner_concurrency}/' /etc/gitlab-runner/config.toml
-
-  systemctl restart gitlab-runner
   # I'm sure I can add this to the AMI build, but that's slow.
   # At least this way, if there's an issue, fixing it is easier.
   # Once this is working for sure, I'll bake it into the AMI. ~agargiulo

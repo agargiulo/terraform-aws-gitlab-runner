@@ -23,14 +23,16 @@ variable "s3_cache_config" {
 
 variable "runner_ec2" {
   type = map(object({
-    glr_version     = string
-    credit_spec     = string
-    instance_role   = string
-    instance_type   = string
-    security_groups = list(string)
-    ssh_key_pub     = string
-    subnet_id       = string
-    ebs_root_size   = number
+    glr_version = string
+    instance = object({
+      credit_spec     = string
+      role            = string
+      type            = string
+      security_groups = list(string)
+      ssh_key_pub     = string
+      subnet_id       = string
+      ebs_root_size   = number
+    })
     s3_cache = object({
       enabled = bool
       prefix  = string
@@ -43,7 +45,9 @@ variable "runner_ec2" {
       default_tags         = string
       locked               = bool
       run_untagged         = bool
-      runner_concurrency   = number
+    })
+    config = object({
+      concurrency = number
     })
   }))
 }
