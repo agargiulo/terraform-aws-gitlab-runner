@@ -1,28 +1,13 @@
 # Info for this AMI can be found here: https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
-data "aws_ami" "debian_bullseye" {
+data "aws_ssm_parameter" "debian_bullseye" {
   provider = aws.ci
-
-  owners      = ["136693071363"]
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["debian-11-amd64-2022*"]
-  }
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+  name     = "/aws/service/debian/release/bullseye/latest/amd64"
 }
 
 resource "random_pet" "runner_id" {
   for_each = var.runner_ec2
   keepers = {
-    ami_id    = data.aws_ami.debian_bullseye.id
+    ami_id    = nonsensitive(data.aws_ssm_parameter.debian_bullseye.value)
     subnet_id = each.value.instance.subnet_id
     pub_key   = each.value.instance.ssh_key_pub
     user_data = templatefile(
