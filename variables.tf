@@ -25,14 +25,12 @@ variable "runner_ec2" {
   type = map(object({
     glr_version = string
     instance = object({
-      credit_spec     = string
-      role            = string
-      type            = string
-      security_groups = list(string)
-      ssh_key_pub     = string
-      subnet_id       = string
-      ebs_root_size   = number
-      swap_size       = number
+      credit_spec   = string
+      role          = string
+      type          = string
+      ssh_key_pub   = string
+      ebs_root_size = number
+      swap_size     = number
     })
     s3_cache = object({
       enabled = bool
@@ -52,6 +50,14 @@ variable "runner_ec2" {
       check_intvl = number
     })
   }))
+}
+
+variable "runner_sec_groups" {
+  type = map(list(string))
+}
+
+variable "runner_subnets" {
+  type = map(string)
 }
 
 variable "route53_zone_name" {
