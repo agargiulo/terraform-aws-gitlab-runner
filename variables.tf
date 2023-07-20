@@ -3,9 +3,14 @@ variable "prefix" {
   default = "gitlab-runner"
 }
 
-variable "ami_owner" {
-  type    = string
-  default = "self"
+variable "ami_release" {
+  description = "Debian release name slug"
+  type        = string
+  default     = "bookworm"
+  validation {
+    condition     = length(regexall("^[a-z]", var.ami_release)) > 0
+    error_message = "The ami_release needs to start with a lower-case letter"
+  }
 }
 
 variable "s3_cache_config" {
