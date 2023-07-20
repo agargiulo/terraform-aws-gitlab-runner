@@ -1,14 +1,18 @@
-# Info for this AMI can be found here: https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
-data "aws_ssm_parameter" "debian_bullseye" {
+locals {
+  ami_param_name = "/aws/service/debian/release/${var.ami_release}/latest/amd64"
+}
+
+# Info for this AMI can be found here: https://wiki.debian.org/Cloud/AmazonEC2Image/
+data "aws_ssm_parameter" "debian_ami_param" {
   provider = aws.ci
-  name     = "/aws/service/debian/release/bullseye/latest/amd64"
+  name     = local.ami_param_name
 }
 
 resource "random_pet" "runner_id" {
   for_each = var.runner_ec2
   keepers = {
-    ami_id    = nonsensitive(data.aws_ssm_parameter.debian_bullseye.value)
-    subnet_id = each.value.instance.subnet_id
+    ami_id    = nonsensitive(data.aws_ssm_parameter.debian_ami_param.value)
+    subnet_id = var.runner_subnets[each.key]
     pub_key   = each.value.instance.ssh_key_pub
     user_data = templatefile(
       "${path.module}/templates/gl_runner_cloud_init.tmpl",
@@ -50,7 +54,7 @@ resource "aws_instance" "gitlab_runner" {
 
   ami                         = random_pet.runner_id[each.key].keepers.ami_id
   instance_type               = each.value.instance.type
-  vpc_security_group_ids      = each.value.instance.security_groups
+  vpc_security_group_ids      = var.runner_sec_groups[each.key]
   subnet_id                   = random_pet.runner_id[each.key].keepers.subnet_id
   associate_public_ip_address = true
   monitoring                  = true
