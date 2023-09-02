@@ -41,6 +41,19 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "gitlab_runner_s3_
     }
   }
 }
+resource "aws_s3_bucket_lifecycle_configuration" "gitlab_runner_s3_cache" {
+  provider = aws.ci
+
+  for_each = var.s3_cache_config.lifecycle.enabled ? toset(["enabled"]) : toset([])
+  bucket   = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
+  rule {
+    status = "Enabled"
+    id     = "delete-older-than-${var.s3_cache_config.lifecycle.days}-days"
+    expiration {
+      days = var.s3_cache_config.lifecycle.days
+    }
+  }
+}
 resource "aws_s3_bucket_public_access_block" "gitlab_runner_s3_cache" {
   provider = aws.ci
 
