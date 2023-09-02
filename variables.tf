@@ -23,6 +23,10 @@ variable "s3_cache_config" {
       bucket  = string
     })
     sse_enabled = bool
+    lifecycle = object({
+      enabled = bool
+      days    = number
+    })
   })
 }
 
