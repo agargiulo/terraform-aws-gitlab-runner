@@ -51,8 +51,6 @@ variable "runner_ec2" {
       ci_token             = string
       default_docker_image = string
       default_tags         = string
-      locked               = bool
-      run_untagged         = bool
     })
     config = object({
       concurrency = number
