@@ -8,7 +8,7 @@ stages:
 terraform_latest_fmt_check:
   stage: test
   image:
-    name: hashicorp/terraform:light
+    name: hashicorp/terraform:latest
     entrypoint: [ "" ]
   script:
     - terraform --version

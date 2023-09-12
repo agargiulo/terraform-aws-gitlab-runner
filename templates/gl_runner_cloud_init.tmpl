@@ -70,12 +70,14 @@ function glr_register() {
 
   systemctl restart gitlab-runner
 
+# Old flags if they become important again?
+# --locked='$${reg.locked}' --tag-list '$${reg.default_tags}' --run-untagged='$${reg.run_untagged}' \
+
   /usr/bin/gitlab-runner register \
   --non-interactive \
   --url 'https://${reg.gitlab_host}/' \
-  --registration-token '${reg.ci_token}' \
+  --token '${reg.ci_token}' \
   --executor docker --docker-image '${reg.default_docker_image}' \
-  --locked='${reg.locked}' --tag-list '${reg.default_tags}' --run-untagged='${reg.run_untagged}' \
   --cache-type s3 --cache-path '${s3_cache_config["prefix"]}' --cache-shared='${s3_cache_config["shared"]}'\
   --cache-s3-server-address "s3.amazonaws.com" \
   --cache-s3-bucket-name '${s3_cache_config["bucket"]}' \
@@ -98,6 +100,7 @@ UNREGISTER_EOF
 }
 
 function cloud_init() {
+  echo "[$(date +%F)] Setup Underway"
   apt-get update
   apt-get upgrade -y
   apt-get -y install \
@@ -118,6 +121,8 @@ function cloud_init() {
   echo '30 12 * * 4 root /usr/share/gitlab-runner/clear-docker-cache' > /etc/cron.d/99-gitlab-runner-clean-cache
 
   glr_register
+
+  echo "[$(date +%F)] Setup Completed"
 }
 
 cloud_init 1>/var/log/cloud-init-user.log 2>/var/log/cloud-init-user-error.log
