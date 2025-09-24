@@ -47,6 +47,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "gitlab_runner_s3_cache" {
   for_each = var.s3_cache_config.lifecycle.enabled ? toset(["enabled"]) : toset([])
   bucket   = aws_s3_bucket.gitlab_runner_s3_cache[each.value].bucket
   rule {
+    filter {
+      prefix = ""
+    }
     status = "Enabled"
     id     = "delete-older-than-${var.s3_cache_config.lifecycle.days}-days"
     expiration {
