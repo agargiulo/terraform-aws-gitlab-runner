@@ -74,6 +74,6 @@ variable "route53_zone_name" {
 
 variable "route53_all_prefix" {
   description = "prefix for collective runner DNS record"
-  type = string
-  default = "_all"
+  type        = string
+  default     = "_all"
 }
