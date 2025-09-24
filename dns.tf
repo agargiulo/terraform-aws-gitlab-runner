@@ -39,7 +39,7 @@ resource "aws_route53_record" "gitlab_runners_all_TXT" {
 
   provider = aws.route53
 
-  name    = "_all._runners.${var.route53_zone_name}."
+  name    = "${var.route53_all_prefix}._runners.${var.route53_zone_name}."
   type    = "TXT"
   ttl     = 60
   records = [for run_key, runn in random_pet.runner_id : runn["id"]]

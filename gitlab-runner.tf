@@ -17,6 +17,7 @@ resource "random_pet" "runner_id" {
     user_data = templatefile(
       "${path.module}/templates/gl_runner_cloud_init.tmpl",
       {
+        ami_release : var.ami_release,
         glr_version : each.value.glr_version,
         reg : each.value.register,
         config : each.value.config,

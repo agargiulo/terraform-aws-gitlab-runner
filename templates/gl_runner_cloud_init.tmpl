@@ -44,8 +44,17 @@ function docker_repo() {
 
   # Manually add docker repo (I guess they aren't as fancy as gitlab)
   curl -fsSL "$${docker_gpg_key_url}" | gpg --dearmor -o "$${docker_apt_key_path}"
+  %{~ if ami_release == "bookworm" ~}
   cat << DOCKER_SOURCES_EOF > /etc/apt/sources.list.d/docker.list
 deb [arch=amd64 signed-by=$${docker_apt_key_path}] https://download.docker.com/linux/debian $(lsb_release -cs) stable
+  %{~ else ~}
+  cat << DOCKER_SOURCES_EOF > /etc/apt/sources.list.d/docker.sources
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(lsb_release -cs)
+Components: stable
+Signed-By: $${docker_apt_key_path}
+  %{~ endif ~}
 DOCKER_SOURCES_EOF
 }
 
@@ -57,8 +66,19 @@ function glr_repo() {
   glr_apt_source_path="/etc/apt/sources.list.d/runner_gitlab-runner.list"
 
   # Install Gitlab Runner repo
+  %{~ if ami_release == "bookworm" ~}
   curl -fsSL "$${glr_apt_config_url}" > "$${glr_apt_source_path}"
+  %{~ endif ~}
   curl -fsSL "$${glr_gpg_key_url}" | gpg --dearmor -o "$${glr_apt_key_path}"
+  %{~ if ami_release == "trixie" ~}
+  cat << GITLAB_SOURCES_EOF > /etc/apt/sources.list.d/runner_gitlab-runner.sources
+Types: deb deb-src
+URIs: https://packages.gitlab.com/runner/gitlab-runner/debian/
+Suites: $(lsb_release -cs)
+Components: main
+Signed-By: $${glr_apt_key_path}
+GITLAB_SOURCES_EOF
+  %{~ endif ~}
 }
 
 function glr_register() {
@@ -69,9 +89,6 @@ function glr_register() {
   sed -i'' 's/check_interval = 0/check_interval = ${config.check_intvl}/' /etc/gitlab-runner/config.toml
 
   systemctl restart gitlab-runner
-
-# Old flags if they become important again?
-# --locked='$${reg.locked}' --tag-list '$${reg.default_tags}' --run-untagged='$${reg.run_untagged}' \
 
   /usr/bin/gitlab-runner register \
   --non-interactive \
@@ -85,9 +102,6 @@ function glr_register() {
   --cache-s3-insecure=false \
   --name "$runner_name"
 
-  # I'm sure I can add this to the AMI build, but that's slow.
-  # At least this way, if there's an issue, fixing it is easier.
-  # Once this is working for sure, I'll bake it into the AMI. ~agargiulo
   cat << UNREGISTER_EOF > /tmp/unregister_runners.sh
 #!/usr/bin/env bash
 if [[ "\$1" != "reboot" ]]; then
@@ -96,6 +110,7 @@ fi
 UNREGISTER_EOF
 
   # https://www.freedesktop.org/software/systemd/man/systemd-halt.service.html
+  mkdir -pv /usr/lib/systemd/system-shutdown
   install -p -m 0755 /tmp/unregister_runners.sh /usr/lib/systemd/system-shutdown/unregister_runners.sh
 }
 
@@ -103,12 +118,19 @@ function cloud_init() {
   echo "[$(date +%F)] Setup Underway"
   apt-get update
   apt-get upgrade -y
+  %{~ if ami_release == "trixie" ~}
+  apt-get -y install \
+    apt-transport-https \
+    gnupg gnupg-agent \
+    htop mosh tmux anacron
+  %{~ else ~}
   apt-get -y install \
     apt-transport-https \
     ca-certificates \
     curl gnupg gnupg-agent \
     htop mosh tmux anacron \
     software-properties-common
+  %{~ endif ~}
 
   %{~ if swap_enabled ~}
   swap_init

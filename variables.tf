@@ -71,3 +71,9 @@ variable "route53_zone_name" {
   description = "Name of the hosted zone for the runners DNS. Empty string disables but caveat, the provider still needs to be set to something"
   type        = string
 }
+
+variable "route53_all_prefix" {
+  description = "prefix for collective runner DNS record"
+  type = string
+  default = "_all"
+}
